@@ -1,5 +1,9 @@
+package io.github.crejak.botchen;
+
+import io.github.crejak.botchen.util.Translator;
 import me.sargunvohra.lib.pokekotlin.model.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -27,7 +31,10 @@ public class PokemonInstance {
 
     public int currentHp;
 
-    public PokemonInstance(Pokemon pokemon, PokemonSpecies species, Nature nature, int level) {
+    public List<Move> moves;
+    public List<Integer> currentPps;
+
+    public PokemonInstance(Pokemon pokemon, PokemonSpecies species, Nature nature, int level, List<Move> moves) {
         this.pokemon = pokemon;
         this.species = species;
         this.nature = nature;
@@ -55,6 +62,12 @@ public class PokemonInstance {
         this.evSpeed = 0;
 
         this.currentHp = this.getHp();
+
+        this.moves = moves;
+        this.currentPps = new ArrayList<>();
+        for (int i = 0; i < moves.size(); i++) {
+            this.currentPps.add(moves.get(i).getPp());
+        }
     }
 
     public int getBaseStat(int statId) {
@@ -173,6 +186,10 @@ public class PokemonInstance {
         return getStat(6);
     }
 
+    public int getPp(int moveIndex) {
+        return currentPps.get(moveIndex - 1);
+    }
+
     public String getNameFr() {
         List<Name> names = species.getNames();
         for (Name name :
@@ -243,6 +260,13 @@ public class PokemonInstance {
         if (!gender.equals("")) {
             gender = " (" + gender + ")";
         }
+        String movesString = "";
+        for (int i = 0; i < moves.size(); ++i) {
+            Move move = moves.get(i);
+            movesString += (i+1) + ") " + Translator.getNameFrOrDefault(move.getNames(), move.getName()) + "\n" +
+                    "   " + Translator.getTypeNameFr(move.getType().getId()) + ", PP " + getPp(i+1) + "/" + move.getPp() + "\n";
+        }
+
         return "```\n" +
                 getNameFr() + gender + " nv. " + level + "\n" +
                 getNatureNameFr() + " de nature\n" +
@@ -258,6 +282,7 @@ public class PokemonInstance {
                 "Attaque Spé.  " + getSpecialAttack() + "\n" +
                 "Défense Spé.  " + getSpecialDefense() + "\n" +
                 "Vitesse       " + getSpeed() + "\n" +
+                movesString +
                 "```";
     }
 }

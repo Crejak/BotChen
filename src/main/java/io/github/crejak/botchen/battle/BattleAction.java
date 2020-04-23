@@ -1,4 +1,4 @@
-package battle;
+package io.github.crejak.botchen.battle;
 
 public class BattleAction {
     public BattleActionType type;
