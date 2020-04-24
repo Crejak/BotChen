@@ -1,4 +1,6 @@
-import me.sargunvohra.lib.pokekotlin.client.PokeApi;
+package io.github.crejak.botchen;
+
+import io.github.crejak.botchen.battle.*;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.MessageChannel;
@@ -13,7 +15,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class Main extends ListenerAdapter {
     private final HashMap<String, UserStatus> statusMap;
@@ -43,6 +47,7 @@ public class Main extends ListenerAdapter {
 
         String raw = event.getMessage().getContentRaw();
         String lcs = raw.toLowerCase().trim();
+        String[] args = lcs.split(" ");
         MessageChannel channel = event.getChannel();
         User user = event.getAuthor();
         UserStatus status = getStatusOrDefault(user);
@@ -55,34 +60,38 @@ public class Main extends ListenerAdapter {
         if (status == UserStatus.REGISTER) {
             register(user, channel, raw);
             return;
-        }
-
-        String[] words = lcs.split(" ");
-        if (words.length <= 0 || !words[0].equals(":p")) {
+        } else if (status == UserStatus.BATTLE) {
+            trainerMap.get(user.getId()).battleInterface.input(channel, args);
             return;
         }
 
-        if (words.length == 1) {
+        if (args.length <= 0 || !args[0].equals(":p")) {
+            return;
+        }
+
+        if (args.length == 1) {
             printMainHelp(channel);
             return;
         }
 
-        String arg = words[1];
+        String cmd = args[1];
 
-        if (arg.equals("help")) {
-            help(channel, words);
-        } else if (arg.equals("register")) {
+        if (cmd.equals("help")) {
+            help(channel, args);
+        } else if (cmd.equals("register")) {
             register(user, channel, null);
-        } else if (arg.equals("me")) {
+        } else if (cmd.equals("me")) {
             printMe(user, channel);
-        } else if (arg.equals("team")) {
-            team(user, channel, words);
-        } else if (arg.equals("pc")) {
-            pc(user, channel, words);
-        } else if (arg.equals("pkmn")) {
+        } else if (cmd.equals("team")) {
+            team(user, channel, args);
+        } else if (cmd.equals("pc")) {
+            pc(user, channel, args);
+        } else if (cmd.equals("pkmn")) {
             printRandomPokemon(channel);
-        } else if (arg.equals("catch")) {
+        } else if (cmd.equals("catch")) {
             catchRandomPokemon(user, channel);
+        } else if (cmd.equals("battle")) {
+            initMockBattle(user, channel, args);
         } else {
             channel.sendMessage("Désolé, je ne connais pas cette commande. Utilise `:p help` pour connaître les actions disponibles.").queue();
         }
@@ -427,5 +436,29 @@ public class Main extends ListenerAdapter {
         } else {
             channel.sendMessage("Désolé, je ne connais pas la commande `pc " + cmd + "`. Utilise `:p help pc` pour connaître les actions disponibles.").queue();
         }
+    }
+
+    public void initMockBattle(User user, MessageChannel channel, String[] args) {
+        Trainer trainer = trainerMap.get(user.getId());
+        if (trainer == null) {
+            channel.sendMessage("Tu dois d'abord t'enregistrer pour devenir un dresseur. Utilise la commande " +
+                    "`:p register` pour ça !").queue();
+            return;
+        }
+
+        int speciesIndex = Integer.parseInt(args[2]);
+        int level = Integer.parseInt(args[3]);
+
+        List<PokemonInstance> enemyTeam = new ArrayList<>();
+        enemyTeam.add(pokedex.generatePokemon(speciesIndex, level));
+
+        UserBattleInterface userInterface = new UserBattleInterface(user, trainer, channel);
+        BattleInterface enemyInterface = new BasicAiBattleInterface();
+
+        Battle battle = new Battle(trainer.team, enemyTeam, userInterface, enemyInterface, BattleType.WILD_POKEMON);
+        trainer.battleInterface = userInterface;
+        statusMap.put(user.getId(), UserStatus.BATTLE);
+
+        channel.sendMessage(trainer.name + " débute le combat contre un " + enemyTeam.get(0).getNameFr() + " sauvage !").queue();
     }
 }

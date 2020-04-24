@@ -1,3 +1,7 @@
+package io.github.crejak.botchen;
+
+import io.github.crejak.botchen.battle.UserBattleInterface;
+
 import java.util.*;
 
 public class Trainer {
@@ -11,6 +15,8 @@ public class Trainer {
     public List<PokemonInstance> team;
     public List<PokemonInstance> pc;
 
+    public UserBattleInterface battleInterface;
+
     public Trainer(String id, String name, Gender gender) {
         this.id = id;
         this.trainerId = (new Random(System.currentTimeMillis())).nextInt(100_000);
@@ -21,6 +27,8 @@ public class Trainer {
 
         this.team = new ArrayList<>(6);
         this.pc = new ArrayList<>(100);
+
+        this.battleInterface = null;
     }
 
     public String getTeamSummary() {
