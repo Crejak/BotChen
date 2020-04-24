@@ -52,7 +52,7 @@ public class Pokedex {
                 continue;
             }
             if (pmv.getLevelLearnedAt() <= maxLevel &&
-                    (!filterLearnMethod || pmv.getMoveLearnMethod().getId() == 1 || pmv.getMoveLearnMethod().getId() == 2)) {
+                    (!filterLearnMethod || pmv.getMoveLearnMethod().getId() == 1)) {
                 filteredList.add(move);
             }
         }
@@ -76,8 +76,8 @@ public class Pokedex {
                 versions) {
             if (version.getVersionGroup().getId() == VERSION_GROUP && (
                     foundVersion == null ||
-                            foundVersion.getMoveLearnMethod().getId() > 2 && version.getMoveLearnMethod().getId() <= 2 ||
-                            foundVersion.getMoveLearnMethod().getId() <= 2 && version.getMoveLearnMethod().getId() <= 2 &&
+                            foundVersion.getMoveLearnMethod().getId() > 1 && version.getMoveLearnMethod().getId() <= 1 ||
+                            foundVersion.getMoveLearnMethod().getId() <= 1 && version.getMoveLearnMethod().getId() <= 1 &&
                                     foundVersion.getLevelLearnedAt() < version.getLevelLearnedAt()
                     )) {
                 foundVersion = version;

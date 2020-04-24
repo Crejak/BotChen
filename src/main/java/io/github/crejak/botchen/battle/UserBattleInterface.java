@@ -1,8 +1,12 @@
 package io.github.crejak.botchen.battle;
 
+import io.github.crejak.botchen.PokemonInstance;
 import io.github.crejak.botchen.Trainer;
+import me.sargunvohra.lib.pokekotlin.model.Move;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.User;
+
+import java.util.List;
 
 public class UserBattleInterface extends BattleInterface {
     public User user;
@@ -23,7 +27,7 @@ public class UserBattleInterface extends BattleInterface {
             return;
         }
 
-        String cmd = args[2];
+        String cmd = args[1];
 
         if (cmd.equals("help")) {
             help(channel, args);
@@ -108,9 +112,11 @@ public class UserBattleInterface extends BattleInterface {
                         ":p fight (alias: move)\n\n" +
                         "Affiche la liste des capacités de ton Pokémon combattant. Tu peux choisir d'utiliser une de ces " +
                         "capacités avec la commande suivante :\n\n" +
-                        ":p fight <moveIndex>  Utiliser une capacité du Pokémon combattant\n\n" +
+                        ":p fight <moveIndex>  Utiliser une capacité du Pokémon combattant\n" +
+                        ":p fight struggle     Effectuer l'attaque Lutte, si plus aucune autre option n'est possible\n\n" +
                         "Où <moveIndex> indique le numéro de la capacité à utiliser. Retiens que tu ne pourras pas " +
-                        "utiliser une capacité pour laquelle ton Pokémon n'a plus de PP !\n" +
+                        "utiliser une capacité pour laquelle ton Pokémon n'a plus de PP ! Si tu ne peux plus utiliser de " +
+                        "capacité, ta seule option pour combattre est d'utiliser l'attaque Lutte.\n" +
                         "```";
                 break;
             case "bag":
@@ -173,18 +179,148 @@ public class UserBattleInterface extends BattleInterface {
     }
 
     private void fight(MessageChannel channel, String[] args) {
+        if (state != BattleInterfaceState.CHOOSE_ACTION) {
+            channel.sendMessage("Ce n'est pas à toi d'agir !").queue();
+            return;
+        }
 
+        PokemonInstance battlingPokemon = battle.getBattlingPokemon(side);
+        List<Move> moves = battlingPokemon.moves;
+
+        if (args.length == 2) {
+            String movesString = battlingPokemon.getMovesAsString();
+            channel.sendMessage("Voici les capacités que ton " + battlingPokemon.getNameFr() + " peut utiliser :\n" +
+                    "```\n" + movesString + "\n```").queue();
+            return;
+        }
+
+        String cmd = args[2];
+        try {
+            int index = Integer.parseInt(cmd);
+            if (index < 1 || index > moves.size()) {
+                channel.sendMessage("Tu dois indiquer le numéro de la capacité à utilier. Utilise `:p fight` pour connaître les capacités de ton Pokémon.").queue();
+                return;
+            }
+            if (battlingPokemon.getPp(index) == 0) {
+                channel.sendMessage("Ton Pokémon n'a plus de PP pour cette capacité !").queue();
+                return;
+            }
+            String reason = "";
+            if (!battle.canChooseMove(side, index, reason)) {
+                channel.sendMessage(reason).queue();
+                return;
+            }
+            battle.chooseAction(side, BattleAction.Fight(index));
+            return;
+        } catch (NumberFormatException ignored) {
+        }
+
+        if (cmd.equals("struggle")) {
+            for (int i = 1; i <= moves.size(); i++) {
+                if (battlingPokemon.getPp(i) > 0 && battle.canChooseMove(side, i, null)) {
+                    channel.sendMessage("Tu peux encore utiliser des capacités, c'est donc impossible d'utiliser Lutte pour le moment.").queue();
+                    return;
+                }
+            }
+            battle.chooseAction(side, BattleAction.Struggle());
+            return;
+        } else {
+            channel.sendMessage("Désolé, je ne connais pas cette commande. Utiliser `:p help fight` pour connaître les options disponibles.").queue();
+            return;
+        }
     }
 
     private void bag(MessageChannel channel, String[] args) {
+        if (state != BattleInterfaceState.CHOOSE_ACTION) {
+            channel.sendMessage("Ce n'est pas à toi d'agir !").queue();
+            return;
+        }
 
+        channel.sendMessage("Tu n'as pas encore de sac !").queue();
     }
 
     private void pokemon(MessageChannel channel, String[] args) {
+        if (state != BattleInterfaceState.CHOOSE_ACTION && state != BattleInterfaceState.MUST_SWITCH) {
+            channel.sendMessage("Ce n'est pas à toi d'agir !").queue();
+            return;
+        }
 
+        if (args.length == 2) {
+            String teamSummary = trainer.getTeamSummary();
+            channel.sendMessage(teamSummary).queue();
+            return;
+        }
+
+        String cmd = args[2];
+
+        try {
+            int index = Integer.parseInt(cmd);
+            if (index < 1 || index > trainer.team.size()) {
+                channel.sendMessage("Tu dois indiquer la position d'un Pokémon dans ton équipe. " +
+                        "Utilise `:p pokemon` pour consulter le résumé de ton équipe.").queue();
+                return;
+            }
+            String summary = trainer.getPokemonInTeam(index).toDisplayableString();
+            channel.sendMessage(summary).queue();
+            return;
+        } catch (NumberFormatException ignored) {
+        }
+
+        if (cmd.equals("switch")) {
+            String reason = "";
+            if (!battle.canSwitch(side, reason)) {
+                channel.sendMessage(reason).queue();
+                return;
+            }
+            if (args.length < 4) {
+                channel.sendMessage("Utilisation de la commande : `:p pokemon switch <index>`.").queue();
+                return;
+            }
+            try {
+                int index = Integer.parseInt(args[3]);
+                if (index < 1 || index > trainer.team.size()) {
+                    channel.sendMessage("Tu dois indiquer la position d'un Pokémon dans ton équipe. " +
+                            "Utilise `:p pokemon` pour consulter le résumé de ton équipe.").queue();
+                    return;
+                }
+                if (trainer.getPokemonInTeam(index).isKo()) {
+                    channel.sendMessage("Le Pokémon est KO. Impossible de l'envoyer au combat !").queue();
+                    return;
+                }
+                if (state == BattleInterfaceState.CHOOSE_ACTION) {
+                    battle.chooseAction(side, BattleAction.Pokemon(index));
+                } else if (state == BattleInterfaceState.MUST_SWITCH) {
+                    battle.chooseSwitch(side, index);
+                }
+                return;
+            } catch (NumberFormatException ignored) {
+                channel.sendMessage("Tu dois indiquer la position d'un Pokémon dans ton équipe. " +
+                        "Utilise `:p pokemon` pour consulter le résumé de ton équipe.").queue();
+                return;
+            }
+        } else {
+            channel.sendMessage("Désolé, je ne connais pas cette commande. Utilise `:p help pokemon` pour connaître les actions disponibles.").queue();
+            return;
+        }
     }
 
     private void run(MessageChannel channel) {
+        if (state != BattleInterfaceState.CHOOSE_ACTION) {
+            channel.sendMessage("Ce n'est pas à toi d'agir !").queue();
+            return;
+        }
 
+        if (battle.type == BattleType.AI_TRAINER || battle.type == BattleType.USER_TRAINER) {
+            channel.sendMessage("On ne fuit pas d'un combat entre dresseurs !").queue();
+            return;
+        }
+
+        String reason = "";
+        if (!battle.canRun(side, reason)) {
+            channel.sendMessage(reason).queue();
+            return;
+        }
+
+        battle.chooseAction(side, BattleAction.Run());
     }
 }

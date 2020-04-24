@@ -455,10 +455,10 @@ public class Main extends ListenerAdapter {
         UserBattleInterface userInterface = new UserBattleInterface(user, trainer, channel);
         BattleInterface enemyInterface = new BasicAiBattleInterface();
 
-        Battle battle = new Battle(trainer.team, enemyTeam, userInterface, enemyInterface, BattleType.WILD_POKEMON);
+        channel.sendMessage(trainer.name + " débute le combat contre un " + enemyTeam.get(0).getNameFr() + " sauvage !").queue();
+
+        new Battle(trainer.team, enemyTeam, userInterface, enemyInterface, BattleType.WILD_POKEMON, channel);
         trainer.battleInterface = userInterface;
         statusMap.put(user.getId(), UserStatus.BATTLE);
-
-        channel.sendMessage(trainer.name + " débute le combat contre un " + enemyTeam.get(0).getNameFr() + " sauvage !").queue();
     }
 }

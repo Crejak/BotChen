@@ -19,6 +19,10 @@ public class BattleAction {
         return action;
     }
 
+    public static BattleAction Struggle() {
+        return new BattleAction(BattleActionType.STRUGGLE);
+    }
+
     public static BattleAction Run() {
         return new BattleAction(BattleActionType.RUN);
     }

@@ -190,6 +190,10 @@ public class PokemonInstance {
         return currentPps.get(moveIndex - 1);
     }
 
+    public boolean isKo() {
+        return currentHp == 0;
+    }
+
     public String getNameFr() {
         List<Name> names = species.getNames();
         for (Name name :
@@ -255,17 +259,27 @@ public class PokemonInstance {
         return getNameFr() + gender + " nv. " + level;
     }
 
+    public String getMovesAsString() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < moves.size(); ++i) {
+            Move move = moves.get(i);
+            sb.append(i + 1).append(") ").append(Translator.getNameFrOrDefault(move.getNames(), move.getName())).append("\n")
+                    .append("   ").append(Translator.getTypeNameFr(move.getType().getId())).append(", PP ")
+                    .append(getPp(i + 1)).append("/").append(move.getPp());
+            if (i+1 < moves.size()) {
+                sb.append("\n");
+            }
+        }
+        return sb.toString();
+    }
+
     public String toDisplayableString() {
         String gender = getShortGenderNameFr();
         if (!gender.equals("")) {
             gender = " (" + gender + ")";
         }
-        String movesString = "";
-        for (int i = 0; i < moves.size(); ++i) {
-            Move move = moves.get(i);
-            movesString += (i+1) + ") " + Translator.getNameFrOrDefault(move.getNames(), move.getName()) + "\n" +
-                    "   " + Translator.getTypeNameFr(move.getType().getId()) + ", PP " + getPp(i+1) + "/" + move.getPp() + "\n";
-        }
+
+        String movesString = getMovesAsString();
 
         return "```\n" +
                 getNameFr() + gender + " nv. " + level + "\n" +
