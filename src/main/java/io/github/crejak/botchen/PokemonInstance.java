@@ -1,5 +1,6 @@
 package io.github.crejak.botchen;
 
+import io.github.crejak.botchen.util.Values;
 import io.github.crejak.botchen.util.Translator;
 import me.sargunvohra.lib.pokekotlin.model.*;
 
@@ -28,6 +29,14 @@ public class PokemonInstance {
     public int evSpecialAttack;
     public int evSpecialDefense;
     public int evSpeed;
+
+    public int modAttack;
+    public int modDefense;
+    public int modSpecialAttack;
+    public int modSpecialDefense;
+    public int modSpeed;
+    public int modEvasion;
+    public int modAccuracy;
 
     public int currentHp;
 
@@ -61,12 +70,90 @@ public class PokemonInstance {
         this.evSpecialDefense = 0;
         this.evSpeed = 0;
 
+        this.modAttack = 0;
+        this.modDefense = 0;
+        this.modSpecialAttack = 0;
+        this.modSpecialDefense = 0;
+        this.modSpeed = 0;
+        this.modEvasion = 0;
+        this.modAccuracy = 0;
+
         this.currentHp = this.getHp();
 
         this.moves = moves;
         this.currentPps = new ArrayList<>();
         for (int i = 0; i < moves.size(); i++) {
             this.currentPps.add(moves.get(i).getPp());
+        }
+    }
+
+    public void resetModifiers() {
+        this.modAttack = 0;
+        this.modDefense = 0;
+        this.modSpecialAttack = 0;
+        this.modSpecialDefense = 0;
+        this.modSpeed = 0;
+        this.modEvasion = 0;
+        this.modAccuracy = 0;
+    }
+
+    public void changeModDefense(int change) {
+        this.modDefense += change;
+        if (this.modDefense > 6) {
+            this.modDefense = 6;
+        }
+        if (this.modDefense < -6) {
+            this.modDefense = -6;
+        }
+    }
+
+    public void changeModSpecialAttack(int change) {
+        this.modSpecialAttack += change;
+        if (this.modSpecialAttack > 6) {
+            this.modSpecialAttack = 6;
+        }
+        if (this.modSpecialAttack < -6) {
+            this.modSpecialAttack = -6;
+        }
+    }
+
+    public void changeModSpecialDefense(int change) {
+        this.modSpecialDefense += change;
+        if (this.modSpecialDefense > 6) {
+            this.modSpecialDefense = 6;
+        }
+        if (this.modSpecialDefense < -6) {
+            this.modSpecialDefense = -6;
+        }
+    }
+
+    public void changeModSpeed(int change) {
+        this.modSpeed += change;
+        if (this.modSpeed > 6) {
+            this.modSpeed = 6;
+        }
+        if (this.modSpeed < -6) {
+            this.modSpeed = -6;
+        }
+    }
+
+    public void changeModAccuracy(int change) {
+        this.modAccuracy += change;
+        if (this.modAccuracy > 6) {
+            this.modAccuracy = 6;
+        }
+        if (this.modAccuracy < -6) {
+            this.modAccuracy = -6;
+        }
+    }
+
+    public void changeModEvasion(int change) {
+        this.modEvasion += change;
+        if (this.modEvasion > 6) {
+            this.modEvasion = 6;
+        }
+        if (this.modEvasion < -6) {
+            this.modEvasion = -6;
         }
     }
 
@@ -186,8 +273,41 @@ public class PokemonInstance {
         return getStat(6);
     }
 
+    public int getModifiedAttack() {
+        return (int)Math.floor(getAttack() * Values.getMultiplier(modAttack));
+    }
+
+    public int getModifiedDefense() {
+        return (int)Math.floor(getDefense() * Values.getMultiplier(modDefense));
+    }
+
+    public int getModifiedSpecialAttack() {
+        return (int)Math.floor(getSpecialAttack() * Values.getMultiplier(modSpecialAttack));
+    }
+
+    public int getModifiedSpecialDefense() {
+        return (int)Math.floor(getSpecialDefense() * Values.getMultiplier(modSpecialDefense));
+    }
+
+    public int getModifiedSpeed() {
+        return (int)Math.floor(getSpeed() * Values.getMultiplier(modSpeed));
+    }
+
     public int getPp(int moveIndex) {
         return currentPps.get(moveIndex - 1);
+    }
+
+    public void reducePp(int moveIndex, int ppToSubtract) {
+        int currentPp = getPp(moveIndex);
+        currentPp -= ppToSubtract;
+        if (currentPp < 0) {
+            currentPp = 0;
+        }
+        currentPps.set(moveIndex-1, currentPp);
+    }
+
+    public Move getMove(int moveIndex) {
+        return moves.get(moveIndex-1);
     }
 
     public boolean isKo() {
